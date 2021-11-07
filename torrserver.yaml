@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: torrserver
+  labels:
+    name: torrserver
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: torrsrvconfig
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  persistentVolumeReclaimPolicy: Retain
+  accessModes:
+  - ReadWriteOnce
+  hostPath:
+    path: /storage/k8sConfig/torrserver
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: torrsrv-config-claim
+  namespace: torrserver
+spec:
+  storageClassName: manual
+  accessModes:
+  - ReadWriteOnce
+  volumeName: torrsrvconfig
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: torrserver
+  namespace: torrserver
+spec:
+  template:
+    metadata:
+      name: torrserver-app
+      labels:
+        name: torrserver-app
+    spec:
+      volumes:
+        - name: torrserver
+          persistentVolumeClaim:
+            claimName: torrsrv-config-claim
+      containers:
+      - name: torrserver
+        image: shadalik/torrserver-amd64
+        env:
+        - name: restart
+          value: always
+        volumeMounts:
+        - name: torrserver
+          mountPath: "/torrserver-data"
+        imagePullPolicy: IfNotPresent
+  replicas: 1
+  selector:
+    matchLabels:
+      name: torrserver-app
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: torrserver-service
+  namespace: torrserver
+spec:
+  selector:
+    name: torrserver-app
+  ports:
+  - name: http
+    protocol: TCP
+    port: 8090
+    targetPort: 8090
