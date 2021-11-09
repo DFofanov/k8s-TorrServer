@@ -41,6 +41,7 @@ metadata:
   name: torrserver
   namespace: torrserver
 spec:
+  replicas: 1
   template:
     metadata:
       name: torrserver-app
@@ -48,20 +49,22 @@ spec:
         name: torrserver-app
     spec:
       volumes:
-        - name: torrserver
+        - name: torrconfig
           persistentVolumeClaim:
             claimName: torrsrv-config-claim
       containers:
-      - name: torrserver
-        image: shadalik/torrserver-amd64
-        env:
-        - name: restart
-          value: always
-        volumeMounts:
         - name: torrserver
-          mountPath: "/torrserver-data"
-        imagePullPolicy: IfNotPresent
-  replicas: 1
+          image: 19780529/torrserver:1.0
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: TZ
+            value: Europe/Moscow
+          volumeMounts:
+          - name: torrconfig
+            mountPath: "/torrserver/config"
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 0
   selector:
     matchLabels:
       name: torrserver-app
